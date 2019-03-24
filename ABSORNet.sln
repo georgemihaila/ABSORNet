@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.329
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ABSORNet", "ABSORNet\ABSORNet.csproj", "{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E96A6E33-3133-4058-9F47-35BB8114A7E0}
+	EndGlobalSection
+EndGlobal
