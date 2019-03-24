@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.28307.329
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ABSORNet", "ABSORNet\ABSORNet.csproj", "{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ABSORNet.Core", "ABSORNet.Core\ABSORNet.Core.csproj", "{B7EB0CD5-7DC5-47A2-864E-50CD05DACEDC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{264079C6-2CAA-4F6C-8B83-1F3B0D404A9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7EB0CD5-7DC5-47A2-864E-50CD05DACEDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7EB0CD5-7DC5-47A2-864E-50CD05DACEDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7EB0CD5-7DC5-47A2-864E-50CD05DACEDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7EB0CD5-7DC5-47A2-864E-50CD05DACEDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
