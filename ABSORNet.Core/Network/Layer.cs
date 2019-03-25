@@ -10,11 +10,11 @@ namespace ABSORNet.Core.Network
     {
         public int Order { get; set; }
 
-        public double[,] RValues;
+        public double[,] RValues = new double[255, 255];
 
-        public double[,] GValues;
+        public double[,] GValues = new double[255, 255];
 
-        public double[,] BValues;
+        public double[,] BValues = new double[255, 255];
 
         public int X => RValues.GetLength(0);
 

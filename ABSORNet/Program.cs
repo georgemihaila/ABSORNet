@@ -15,7 +15,7 @@ namespace ABSORNet
 {
     class Program
     {
-        internal static void Main(string[] args)
+        internal static async Task Main(string[] args)
         {
             if (args.Length == 0)
             {
@@ -27,86 +27,116 @@ namespace ABSORNet
             string destTempDirectory = $"temp/{res}_preprocessed";
 
             bool skipPreprocessing = false;
+            if (args.Length > 1 && bool.Parse(args[1]))
+                skipPreprocessing = true;
             if (!skipPreprocessing)
             {
                 IImageProvider rawImageProvider = new DirectoryImageProvider();
                 IImagePreprocessor preprocessor = new ImagePreprocessor();
                 preprocessor.ProcessImages(rawImageProvider.LoadImages(sourceDirectory), destTempDirectory);
             }
-            Network network = new Network();
+            int NUM_LAYERS = 8;
+            Network network = new Network(NUM_LAYERS);
             var pictureDirectories = Directory.EnumerateDirectories(destTempDirectory);
             Directory.CreateDirectory("results");
             Directory.CreateDirectory(destTempDirectory);
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-            for (int i = 0; i < int.MaxValue; i++)
+
+            int NUM_THREADS = 4;
+            for (int i = 0; i < NUM_LAYERS; i += NUM_THREADS)
             {
-                stopwatch.Restart();
-                network.Layers.Add(new Layer()
+                Task[] splitTask = new Task[NUM_THREADS];
+                for(int t = 0; t < NUM_THREADS; t++)
                 {
-                    Order = i,
-                    RValues = new double[255, 255],
-                    GValues = new double[255, 255],
-                    BValues = new double[255, 255],
-                });
-                Console.Write("Layer " + i + ": ");
-                Console.Write("init, ");
-                for (int x = 0; x < network.Layers[i].X; x++)
-                    for (int y = 0; y < network.Layers[i].Y; y++)
-                    {
-                        network.Layers[i].RValues[x, y] = 0;
-                        network.Layers[i].GValues[x, y] = 0;
-                        network.Layers[i].BValues[x, y] = 0;
-                    }
-                List<Bitmap> images = new List<Bitmap>();
-                Console.Write("load, ");
-                foreach (var directory in pictureDirectories)
-                {
-                    if (!File.Exists(directory + "/" + i + ".jpg"))
-                    {
-                        Console.WriteLine("Analysis completed.");
-                        File.WriteAllText("analysis.json", JsonConvert.SerializeObject(network, Formatting.Indented));
-                       
-                        return;
-                    }
-                    images.Add((Bitmap)Bitmap.FromFile(directory + "/" + i + ".jpg"));
+                    int layerIndex = t + i;
+                    splitTask[t] = Task.Run(() => DoAnalysis(layerIndex, pictureDirectories, ref network));
                 }
-                Console.Write("process... ");
-                for (int x = 0; x < Math.Pow(2, i); x++)
-                    for (int y = 0; y < Math.Pow(2, i); y++)
-                    {
-                        int[] allRpixels = images.Select(o => (int)o.GetPixel(x, y).R).ToArray();
-                        Array.Sort(allRpixels);
-                        DoMagicWith(ref network.Layers[i].RValues, allRpixels);
-
-                        int[] allGpixels = images.Select(o => (int)o.GetPixel(x, y).G).ToArray();
-                        Array.Sort(allGpixels);
-                        DoMagicWith(ref network.Layers[i].GValues, allGpixels);
-
-                        int[] allBpixels = images.Select(o => (int)o.GetPixel(x, y).B).ToArray();
-                        Array.Sort(allBpixels);
-                        DoMagicWith(ref network.Layers[i].BValues, allBpixels);
-                    }
-                var layer = network.Layers[i];
-                Bitmap b = new Bitmap(255 * 4, 255 * 4);
-                double maxR = layer.RValues.Cast<double>().Max();
-                double maxG = layer.GValues.Cast<double>().Max();
-                double maxB = layer.BValues.Cast<double>().Max();
-
-                double minR = layer.RValues.Cast<double>().Min();
-                double minG = layer.GValues.Cast<double>().Min();
-                double minB = layer.BValues.Cast<double>().Min();
-
-                for (int x = 0; x < b.Width; x++)
-                    for (int y = 0; y < b.Height; y++)
-                        b.SetPixel(x, y, Color.FromArgb(
-                            (int)LinearProjection(minR, maxR, 0, 255, layer.RValues[x / 4, y / 4]),
-                            (int)LinearProjection(minG, maxG, 0, 255, layer.GValues[x / 4, y / 4]),
-                            (int)LinearProjection(minB, maxB, 0, 255, layer.BValues[x / 4, y / 4])));
-                b.Save("results/" + network.Layers.IndexOf(layer) + ".png");
-                stopwatch.Stop();
-                Console.WriteLine($"export to results/{network.Layers.IndexOf(layer)}.png ({stopwatch.Elapsed.TotalSeconds}s)");
+                await Task.WhenAll(splitTask);
             }
 
+        }
+
+        private static void DoAnalysis(int i, IEnumerable<string> pictureDirectories, ref Network network)
+        {
+            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+            var layerDir = "results/layer " + i;
+            Directory.CreateDirectory(layerDir);
+            int order = (int)Math.Pow(2, i);
+            Console.Write("Layer " + i + ": ");
+            //Init layer here in order to not use a huge amount of memory upfront.
+            for (int x = 0; x < order; x++)
+                for (int y = 0; y < order; y++)
+                    network.Layers[i][x, y] = new Layer();
+            List<Bitmap> images = new List<Bitmap>();
+            Console.Write("load, ");
+            foreach (var directory in pictureDirectories)
+            {
+                if (!File.Exists(directory + "/" + i + ".jpg"))
+                {
+                    Console.WriteLine("Analysis completed.");
+                    File.WriteAllText(layerDir + "/layer.json", JsonConvert.SerializeObject(network.Layers[i], Formatting.Indented));
+                    return;
+                }
+                images.Add((Bitmap)Bitmap.FromFile(directory + "/" + i + ".jpg"));
+            }
+            Console.Write("process... ");
+            for (int x = 0; x < order; x++)
+                for (int y = 0; y < order; y++)
+                {
+                    int[] allRpixels = images.Select(o => (int)o.GetPixel(x, y).R).ToArray();
+                    Array.Sort(allRpixels);
+                    DoMagicWith(ref network.Layers[i][x, y].RValues, allRpixels);
+
+                    int[] allGpixels = images.Select(o => (int)o.GetPixel(x, y).G).ToArray();
+                    Array.Sort(allGpixels);
+                    DoMagicWith(ref network.Layers[i][x, y].GValues, allGpixels);
+
+                    int[] allBpixels = images.Select(o => (int)o.GetPixel(x, y).B).ToArray();
+                    Array.Sort(allBpixels);
+                    DoMagicWith(ref network.Layers[i][x, y].BValues, allBpixels);
+                }
+            for (int x = 0; x < order; x++)
+            {
+                for (int y = 0; y < order; y++)
+                {
+                    Bitmap b = new Bitmap(255, 255);
+                    var layer = network.Layers[i][x, y];
+                    double maxR = layer.RValues.Cast<double>().Max();
+                    double maxG = layer.GValues.Cast<double>().Max();
+                    double maxB = layer.BValues.Cast<double>().Max();
+
+                    double minR = layer.RValues.Cast<double>().Min();
+                    double minG = layer.GValues.Cast<double>().Min();
+                    double minB = layer.BValues.Cast<double>().Min();
+
+                    for (int xt = 0; xt < b.Width; xt++)
+                        for (int yt = 0; yt < b.Height; yt++)
+                            b.SetPixel(xt, yt, Color.FromArgb(
+
+                                (minR != maxR) ?
+                                (int)LinearProjection(minR, maxR, 0, 255, layer.RValues[xt, yt])
+                                : 0,
+
+                                (minG != maxG) ?
+                                (int)LinearProjection(minG, maxG, 0, 255, layer.GValues[xt, yt])
+                                : 0,
+
+                                (minB != maxB) ?
+                                (int)LinearProjection(minB, maxB, 0, 255, layer.BValues[xt, yt])
+                                : 0));
+                    var filename = string.Format("{2}/freq_{0}x{1}.png", x, y, layerDir);
+                    b.Save(filename);
+                    Console.WriteLine($"export to {filename}");
+                }
+            }
+            stopwatch.Stop();
+            Console.WriteLine($"Layer {i} analysis completed in ({stopwatch.Elapsed.TotalSeconds}s)");
+            File.WriteAllText(layerDir + "/layer.json", JsonConvert.SerializeObject(network.Layers[i], Formatting.Indented));
+            //Replace current layer with dummy layer in order to free memory
+            Layer[,] dummy = new Layer[0, 0];
+            network.Layers.RemoveAt(i);
+            network.Layers.Insert(i, dummy);
         }
 
         private static void DoMagicWith(ref double[,] arr, int[] sortedValues)
